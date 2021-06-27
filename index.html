@@ -1,0 +1,224 @@
+<html>
+    <head>
+        <title>Flappy Bird</title>
+        <style>
+            canvas {
+            background-color: #37c4ff;
+        }
+        </style>
+    </head>
+    <body onLoad='startGame()'>
+        
+        <canvas id='canvas'>Unsupported Browser</canvas>
+        
+        <img src='sprites.png' width='0' height='0' id='spritesheet'>
+        
+        <script>
+            let o;
+            let b;
+            let gameEnded = false;
+            let img = document.getElementById('spritesheet');
+            let score;
+            let startGame = function(){
+                score=0;
+                gameEnded = false;
+                arena.init();
+                b = new bird();
+                o = new obstacle();
+            }
+
+
+            let arena = {
+                canvas: document.getElementById('canvas'),
+                //initialise here
+                init: function(){
+                    this.ctx = this.canvas.getContext('2d');
+                    //height and width of canvas initialised here
+                    this.canvas.height = 500;
+                    this.canvas.width = 500;
+                    this.interval = setInterval(update, 17.5);
+                    this.ctx.webkitImageSmoothingEnabled = false;
+                    this.ctx.mozImageSmoothingEnabled = false;
+                    this.ctx.imageSmoothingEnabled = false;
+
+                    //listener
+                    window.addEventListener('keydown', function (e) {
+                        //e.key givees " " for spacebar
+                         if(e.key === ' ')
+                            b.vy = -9.5;
+                        if(e.key === 'r' && gameEnded)
+                            startGame();
+                    });
+                },
+                clear: function(){
+                    this.ctx.clearRect(0,0,this.canvas.width, this.canvas.height);
+                },
+                stop: function(){
+                    clearInterval(this.interval);
+                },
+                instructions: function(){
+                    this.ctx.beginPath();
+                    this.ctx.font = '10px Lucida Sans';
+                    this.ctx.fillStyle = 'gray';
+                    this.ctx.fillText('press spacebar to move',0,10);
+                    this.ctx.fill()
+                },
+                copyright: function(){
+                    this.ctx.beginPath();
+                    this.ctx.font = '10px Lucida Sans';
+                    this.ctx.fillStyle = 'gray';
+                    this.ctx.fillText('MADE BY REHAAN SAHAY',this.canvas.width-125,this.canvas.height-2);
+                    this.ctx.fill()
+                },
+                showScore: function(){
+                    this.ctx.beginPath();
+                    this.ctx.font = '50px Lucida Sans';
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.fillText(score,this.canvas.width/2-40,50);
+                    this.ctx.fill()
+                }
+
+            };
+            let update = function(){
+                arena.clear();
+                arena.instructions();
+                b.update();
+                o.update();
+                arena.copyright();
+                arena.showScore();
+                
+
+            }
+            
+            let bird = function(){
+                this.wSize = 34;
+                this.hSize = 22;
+                this.x = canvas.width/2-this.wSize/2;
+                this.y = arena.canvas.height/2;
+                this.vy = 0;
+                this.move = function(){
+                    this.y += this.vy;
+                    this.vy += 0.75;
+                    if(this.y+this.hSize>=arena.canvas.height){ //20 is the height of the bird
+                        this.y = arena.canvas.height-this.hSize;
+                        this.refresh();
+                        
+                    } else if(this.y<=0){
+                        this.y = 0;
+                        this.refresh();
+                    }
+                }
+                this.draw = function(){
+                    if(this.vy<0){
+                       arena.ctx.drawImage(img, 0, 3, 17, 11, this.x ,this.y, this.wSize, this.hSize);
+                       
+                    } else{
+                        arena.ctx.drawImage(img, 0, 23, 17, 12, this.x, this.y, this.wSize, this.hSize);
+                    }
+                },
+                this.update = function(){
+                    this.move();
+                    this.draw();
+                    if(this.collideUp() || this.collideDown()){ 
+                        arena.stop();
+                        this.refresh();
+                    }
+                    
+                }
+
+                this.refresh = function(){
+                    arena.stop();
+                    let ctx = arena.ctx;
+                    ctx.beginPath();
+                    ctx.font = "25px Lucida Sans";
+                    ctx.fillStyle = 'white';
+                    ctx.fillText('PRESS R TO RESTART', 100, 270);
+                    ctx.fill();
+
+                    gameEnded = true;
+                }
+
+                this.collideUp = function(){
+                    //coords of bird
+                    let bTop = this.y;
+                    let bBottom = this.y+this.hSize;
+                    let bRight = this.x+this.wSize;
+                    let bLeft = this.x;
+
+                    //coords of top
+                    let oTop = o.y;
+                    let oBottom = o.upperTube;
+                    let oRight = o.x + o.size;
+                    let oLeft = o.x;
+                    let crash = true;
+                    if((bBottom < oTop) || (bTop > oBottom) || (bRight < oLeft) || (bLeft > oRight)){
+                        crash = false;
+                    }
+                    return crash;
+                } //17,22
+
+                this.collideDown = function(){
+                    //bird
+                    let bTop = this.y;
+                    let bBottom = this.y+this.hSize;
+                    let bRight = this.x+this.wSize;
+                    let bLeft = this.x;
+                    //coords of bottom
+                    let oRight = o.x+o.size;
+                    let oBottom = arena.canvas.height;
+                    let oTop = o.upperTube+o.gap;
+                    let oLeft = o.x;
+
+                    let crash = true;
+                    
+                    if((bBottom < oTop) || (bTop > oBottom) || (bRight < oLeft) || (bLeft > oRight)){
+                        crash = false;
+                    }
+                    return crash;
+                    }
+                }
+            
+            let obstacle = function(){
+                this.updatedScore = false;
+                this.size = 75;
+                this.x = canvas.width+this.size; //10 is  the width of obstacle
+                this.y = 0;
+                this.vx = -3;
+                this.gap = Math.random()*10 + 130; 
+                this.upperTube = Math.random()*100+100 
+                this.draw = function(){ 
+                    //upper
+                    arena.ctx.drawImage(img, 21, 0, 34, 1, this.x, this.y, this.size, this.upperTube);
+                    arena.ctx.drawImage(img, 21, 13, 34, 10, this.x, this.upperTube-this.size*10/34, this.size, this.size*10/34); //34:10 
+                    
+                    //below
+                    arena.ctx.drawImage(img, 21, 0, 34, 1, this.x, this.upperTube+this.gap, this.size, arena.canvas.height);
+                    arena.ctx.drawImage(img, 21, 13, 34, 10, this.x, this.upperTube+this.gap, this.size, this.size*10/34);
+                    
+                }
+                this.getScore = function(){
+                    if(!this.updatedScore && this.x+this.size/2 <= arena.canvas.width/2){
+                        this.updatedScore=true;
+                        score++;
+                    }
+                }
+                this.move  = function(){
+                    this.x += this.vx;
+                    if(this.x+75<=0){
+                        this.updatedScore = false;
+                        this.x = arena.canvas.width;
+                        this.gap = Math.random()*10 + 130;
+                        this.upperTube = Math.random()*100+100
+                        if(this.vx>-6) //only increase vx if it is less than 6, max speed = 6
+                            this.vx+=-0.15;
+                    }
+                }
+                this.update = function(){
+                    this.move();
+                    this.draw();
+                    this.getScore();
+                }
+            }
+        </script>
+    </body>
+</html>
